@@ -2,10 +2,11 @@ import vrep
 import time
 import numpy as np
 import math
+import keyword
 
 
-
-# V-REP data transmission modes:
+DEG = math.pi / 180
+# V-REP data transmission modes:WAIT=BLOCKING mode
 WAIT = vrep.simx_opmode_oneshot_wait
 ONESHOT = vrep.simx_opmode_oneshot
 STREAMING = vrep.simx_opmode_streaming
@@ -13,6 +14,9 @@ BUFFER = vrep.simx_opmode_buffer
 BLOCKING = vrep.simx_opmode_blocking
 
 clientID = -1
+nbrOfRobot = 4
+robotID=[]; fl_joint=[]; fr_joint=[]; bl_joint=[]; br_joint=[]
+body = [robotID, fl_joint, fr_joint, bl_joint, br_joint]
 
 
 def show_msg(message):
@@ -49,14 +53,15 @@ def disconnect():
 
 def start():
     """ Start the simulation (force stop and setup)"""
-    #stop()
-    setup_devices()
-    vrep.simxStartSimulation(clientID, ONESHOT)
-    time.sleep(0.5)
+    # stop()
+    # setup_devices()
+    # vrep.simxStartSimulation(clientID, ONESHOT)
+    # time.sleep(0.5)
     # Solve a rare bug in the simulator by repeating:
-    setup_devices()
+    setup_first_handles(clientID, body)
     vrep.simxStartSimulation(clientID, ONESHOT)
     show_msg('start')
+    print('--simulation start--')
     time.sleep(0.5)
     return
 
@@ -65,18 +70,18 @@ def stop():
     vrep.simxStopSimulation(clientID, ONESHOT)
     time.sleep(0.5)
 
-def setup_devices():
+def setup_first_handles(clientID, body):
     """ Assign the devices from the simulator to specific IDs """
     global robotID, fl_motorID, fr_motorID, br_motorID, bl_motorID, ultraID, rewardRefID, goalID, left_collisionID, right_collisionID
-    # res: result (1(OK), -1(error), 0(not called))
+    # res: result (1(OK), -1(error), 0(not called))??手册里查到0（return ok）
     # 有几个需要控制的对象就需要加几个simxGetObjectHandle函数
     # robot
-    res, robotID = vrep.simxGetObjectHandle(clientID, 'RMB#', WAIT)
+    body[0].append(vrep.simxGetObjectHandle(clientID, 'RMB', WAIT)[1])
     # motors
-    res, fl_motorID = vrep.simxGetObjectHandle(clientID, 'front_left_joint#', WAIT)
-    res, fr_motorID = vrep.simxGetObjectHandle(clientID, 'front_right_joint#', WAIT)
-    res, bl_motorID = vrep.simxGetObjectHandle(clientID, 'back_left_joint#', WAIT)
-    res, br_motorID = vrep.simxGetObjectHandle(clientID, 'back_right_joint#', WAIT)
+    body[1].append(vrep.simxGetObjectHandle(clientID, 'front_left_joint', WAIT)[1])
+    body[2].append(vrep.simxGetObjectHandle(clientID, 'front_right_joint', WAIT)[1])
+    body[3].append(vrep.simxGetObjectHandle(clientID, 'back_left_joint', WAIT)[1])
+    body[4].append(vrep.simxGetObjectHandle(clientID, 'back_right_joint', WAIT)[1])
 
     # # ultrasonic sensors
     # for idx, item in enumerate(config.ultra_distribution):
@@ -109,6 +114,8 @@ def setup_devices():
     # return
 connect()
 start()
+for i in range(1, 5):
+    vrep.simxSetJointTargetVelocity(clientID, body[i][0], 30*DEG, BLOCKING)
 
 
 
